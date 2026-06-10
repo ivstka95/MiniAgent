@@ -29,7 +29,7 @@ fun ChatListDrawer(
             Text("New chat")
         }
         HorizontalDivider()
-        LazyColumn {
+        LazyColumn(modifier = Modifier.weight(1f)) {
             items(chats, key = { it.id }) { chat ->
                 ListItem(
                     headlineContent = { Text(chat.title) },

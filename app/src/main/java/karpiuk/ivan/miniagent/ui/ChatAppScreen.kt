@@ -5,6 +5,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ChatAppScreen(
+    modifier: Modifier = Modifier,
     chatsViewModel: ChatsViewModel = hiltViewModel(),
 ) {
     val chats by chatsViewModel.chats.collectAsStateWithLifecycle()
@@ -42,6 +44,7 @@ fun ChatAppScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        modifier = modifier,
         drawerContent = {
             ModalDrawerSheet {
                 ChatListDrawer(

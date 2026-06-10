@@ -48,10 +48,12 @@ fun ChatAppScreen(
                     chats = chats,
                     onNewChat = { chatsViewModel.createChat() },
                     onSelectChat = { chatId ->
-                        scope.launch { drawerState.close() }
-                        navController.navigate(Chat(chatId)) {
-                            popUpTo(Home) { inclusive = false }
-                            launchSingleTop = true
+                        scope.launch {
+                            drawerState.close()
+                            navController.navigate(Chat(chatId)) {
+                                popUpTo(Home) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         }
                     },
                 )

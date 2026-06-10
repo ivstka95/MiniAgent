@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Project: Mini LLM Chat Agent
 
 A minimal Android chat application with an LLM agent, built for a learning challenge (AI Advent, days 6–8). The goal is a working agent with conversation persistence and token accounting — NOT a polished product. Minimal UI, clean code, no bugs.
@@ -9,15 +13,49 @@ A minimal Android chat application with an LLM agent, built for a learning chall
 
 Build the skeleton to support all three days from the start.
 
+## Build commands
+
+```bash
+# Build debug APK
+./gradlew assembleDebug
+
+# Run all unit tests
+./gradlew test
+
+# Run a single test class
+./gradlew test --tests "karpiuk.ivan.miniagent.domain.agent.AgentTest"
+
+# Run a single test method (backtick names must be URL-encoded in shell)
+./gradlew test --tests "karpiuk.ivan.miniagent.domain.agent.AgentTest.sends full history on each request"
+
+# Lint
+./gradlew lint
+
+# Check (compile + test + lint)
+./gradlew check
+
+# Install on connected device/emulator
+./gradlew installDebug
+```
+
 ## Tech stack
-- **Language:** Kotlin
+- **Language:** Kotlin (Java 11 source/target compatibility)
 - **UI:** Jetpack Compose (minimal — no theming/animations/polish; function over form, but no bugs)
 - **Architecture:** MVVM + Clean Architecture, **single module**
 - **DI:** Hilt
 - **Networking:** Retrofit + OkHttp, **non-streaming** (full response only)
-- **JSON:** **kotlinx.serialization** — requires the `kotlin("plugin.serialization")` Gradle plugin AND a Retrofit kotlinx-serialization converter (e.g. `com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter` or the official Retrofit converter). Do not forget either the plugin or the converter.
+- **JSON:** **kotlinx.serialization** — requires the `kotlin("plugin.serialization")` Gradle plugin AND a Retrofit kotlinx-serialization converter (e.g. `com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter`). Do not forget either the plugin or the converter.
 - **Persistence:** Room (entities: Chat, Message)
 - **Async:** Coroutines + Kotlin Flow. Repositories expose `Flow` for observable data and `suspend` functions for one-shot operations. No blocking calls.
+
+### Key dependencies not yet in `libs.versions.toml`
+Add these to `gradle/libs.versions.toml` when implementing each layer:
+- Hilt: `com.google.dagger:hilt-android`, `com.google.dagger:hilt-compiler`, plugin `com.google.dagger.hilt.android`
+- Room: `androidx.room:room-runtime`, `androidx.room:room-ktx`, `androidx.room:room-compiler` (KSP)
+- Retrofit: `com.squareup.retrofit2:retrofit`, `com.squareup.okhttp3:okhttp`, `com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter`
+- kotlinx.serialization: `org.jetbrains.kotlinx:kotlinx-serialization-json`, plugin `org.jetbrains.kotlin.plugin.serialization`
+- KSP plugin: required for Room and Hilt annotation processing
+- kotlinx.datetime: `org.jetbrains.kotlinx:kotlinx-datetime`
 
 ## Architecture rules (strict)
 - Three layers: **domain**, **data**, **ui**. Dependencies point inward: `ui → domain`, `data → domain`. **domain depends on nothing.**
@@ -29,7 +67,10 @@ Build the skeleton to support all three days from the start.
 - The Agent assembles the outgoing message list from stored history through a SINGLE point, so future context-management (truncation/summarization) can be added there without touching UI.
 
 ## Package structure
-    app/src/main/java/<your.package.name>/
+
+Root package: `karpiuk.ivan.miniagent`
+
+    app/src/main/java/karpiuk/ivan/miniagent/
     │
     ├── data/
     │   ├── remote/        — Retrofit API, request/response DTOs (@Serializable), usage models
@@ -46,9 +87,18 @@ Build the skeleton to support all three days from the start.
     └── ui/
         ├── chat/          — ChatScreen, ChatViewModel
         ├── chats/         — chat list / drawer
-        └── theme/         — minimal theme stub
+        └── theme/         — minimal theme stub (already scaffolded)
 
 Dependency direction: `ui → domain` and `data → domain`. `domain` depends on nothing.
+
+## Build order
+Implement incrementally; the project MUST compile at every step:
+1. **domain** — pure Kotlin models + repository interface + Agent
+2. **data** — Room entities/DAOs + Retrofit API + ChatRepository implementation + mappers
+3. **di** — Hilt modules wiring data implementations to domain interfaces
+4. **ui** — ViewModels + Compose screens
+
+Add each layer's dependencies to `libs.versions.toml` only when that layer is being built.
 
 ## LLM API details
 - Provider: **Anthropic**. Endpoint: `https://api.anthropic.com/v1/messages`.
@@ -59,14 +109,8 @@ Dependency direction: `ui → domain` and `data → domain`. `domain` depends on
 
 ## API key — STRICT security rules
 - The Anthropic API key is read from **`local.properties` → `BuildConfig`** only (key name: `ANTHROPIC_API_KEY`).
-- **NEVER hardcode the key** in source, NEVER write it to a committed file, NEVER print it in logs, NEVER put it in CLAUDE.md or any tracked file.
 - `local.properties` is in `.gitignore` — keep it that way.
-- (Noted compromise: shipping an API key in a client app is not production-safe; acceptable only because this is a learning project.)
-
-## Build & verification
-- Build with Gradle (`./gradlew assembleDebug`). After each layer is added, the project MUST compile before moving on.
-- We build incrementally, layer by layer: **domain → data → DI → UI**. Keep each step compiling.
-- Add dependencies incrementally, only when a layer needs them — not all upfront.
+- **NEVER hardcode the key** in source, NEVER write it to a committed file, NEVER print it in logs.
 
 ## Conventions
 - Idiomatic Kotlin; explicit and readable over clever.

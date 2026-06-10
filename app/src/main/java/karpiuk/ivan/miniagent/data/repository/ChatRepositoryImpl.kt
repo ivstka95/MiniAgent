@@ -1,5 +1,6 @@
 package karpiuk.ivan.miniagent.data.repository
 
+import javax.inject.Inject
 import karpiuk.ivan.miniagent.data.local.dao.ChatDao
 import karpiuk.ivan.miniagent.data.local.dao.MessageDao
 import karpiuk.ivan.miniagent.data.local.entity.ChatEntity
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 
-class ChatRepositoryImpl(
+class ChatRepositoryImpl @Inject constructor(
     private val chatDao: ChatDao,
     private val messageDao: MessageDao,
 ) : ChatRepository {

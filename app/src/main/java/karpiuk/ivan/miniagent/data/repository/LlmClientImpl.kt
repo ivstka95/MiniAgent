@@ -1,5 +1,6 @@
 package karpiuk.ivan.miniagent.data.repository
 
+import javax.inject.Inject
 import karpiuk.ivan.miniagent.data.remote.AnthropicApi
 import karpiuk.ivan.miniagent.data.remote.dto.AnthropicRequestDto
 import karpiuk.ivan.miniagent.data.remote.dto.MessageDto
@@ -8,7 +9,7 @@ import karpiuk.ivan.miniagent.domain.agent.LlmResult
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 
-class LlmClientImpl(private val api: AnthropicApi) : LlmClient {
+class LlmClientImpl @Inject constructor(private val api: AnthropicApi) : LlmClient {
 
     override suspend fun complete(messages: List<Message>): LlmResult {
         val request = AnthropicRequestDto(

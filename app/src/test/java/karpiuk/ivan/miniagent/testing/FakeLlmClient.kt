@@ -19,8 +19,11 @@ class FakeLlmClient : LlmClient {
         return result
     }
 
+    var completePromptException: Exception? = null
+
     override suspend fun completePrompt(prompt: String): String {
         capturedPrompts.add(prompt)
+        completePromptException?.let { throw it }
         return result.assistantText.trim()
     }
 }

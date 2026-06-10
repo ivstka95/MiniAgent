@@ -7,7 +7,6 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.agent.AgentResponse
-import karpiuk.ivan.miniagent.domain.model.Chat
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.testing.FakeChatRepository
@@ -40,7 +39,6 @@ class ChatViewModelTest {
     @Before
     fun setUp() {
         coEvery { agent.sendMessage(any(), any()) } returns AgentResponse(replyText = "reply", inputTokens = 10, outputTokens = 5)
-        coEvery { agent.generateTitle(any(), any()) } returns "Generated Title"
         viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)))
     }
 
@@ -180,57 +178,4 @@ class ChatViewModelTest {
         coVerify(exactly = 1) { agent.sendMessage(any(), any()) }
     }
 
-    @Test
-    fun `sendMessage generates title and updates chat after first exchange`() = runTest {
-        fakeRepository.seedChat(Chat(id = chatId, title = "New chat", createdAt = 0L))
-
-        viewModel.uiState.test {
-            awaitItem() // initial or seeded state
-
-            viewModel.updateInput("How do coroutines work?")
-            viewModel.sendMessage()
-            advanceUntilIdle()
-
-            coVerify { agent.generateTitle("How do coroutines work?", "reply") }
-            assertEquals("Generated Title", expectMostRecentItem().chatTitle)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `sendMessage does not generate title on subsequent exchanges`() = runTest {
-        fakeRepository.seedChat(Chat(id = chatId, title = "Existing title", createdAt = 0L))
-        fakeRepository.addMessage(Message(id = "m1", chatId = chatId, role = Role.USER, content = "first", timestamp = 1L))
-        fakeRepository.addMessage(Message(id = "m2", chatId = chatId, role = Role.ASSISTANT, content = "answer", timestamp = 2L))
-
-        viewModel.uiState.test {
-            awaitItem() // initial or seeded state
-
-            viewModel.updateInput("follow-up question")
-            viewModel.sendMessage()
-            advanceUntilIdle()
-
-            coVerify(exactly = 0) { agent.generateTitle(any(), any()) }
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `sendMessage keeps New chat title and does not surface error when generateTitle fails`() = runTest {
-        fakeRepository.seedChat(Chat(id = chatId, title = "New chat", createdAt = 0L))
-        coEvery { agent.generateTitle(any(), any()) } throws RuntimeException("API error")
-
-        viewModel.uiState.test {
-            awaitItem() // initial or seeded state
-
-            viewModel.updateInput("Hello")
-            viewModel.sendMessage()
-            advanceUntilIdle()
-
-            val lastState = expectMostRecentItem()
-            assertEquals("New chat", lastState.chatTitle)
-            assertNull(lastState.error)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 }

@@ -7,13 +7,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,23 +62,10 @@ class ChatViewModel @Inject constructor(
         val input = _inputText.value.trim()
         if (input.isBlank() || _isSending.value) return
         viewModelScope.launch {
-            val isFirstMessage = repository.getMessagesOnce(chatId).isEmpty()
             _isSending.value = true
             _inputText.value = ""
             try {
-                val response = agent.sendMessage(chatId, input)
-                if (isFirstMessage) {
-                    launch {
-                        try {
-                            val title = agent.generateTitle(input, response.replyText)
-                            repository.updateChatTitle(chatId, title)
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Exception) {
-                            // keep "New chat" on title-generation failure
-                        }
-                    }
-                }
+                agent.sendMessage(chatId, input)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

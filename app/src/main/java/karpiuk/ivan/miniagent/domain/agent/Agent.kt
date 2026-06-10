@@ -37,17 +37,11 @@ class Agent(
     }
 
     suspend fun generateTitle(userMessage: String, assistantMessage: String): String {
-        val prompt = Message(
-            id = UUID.randomUUID().toString(),
-            chatId = "",
-            role = Role.USER,
-            content = "Generate a concise 4–6 word title for a conversation that started with:\n" +
-                    "User: $userMessage\n" +
-                    "Assistant: $assistantMessage\n" +
-                    "Reply with only the title, no punctuation.",
-            timestamp = System.currentTimeMillis(),
-        )
-        return llmClient.complete(listOf(prompt)).assistantText.trim()
+        val prompt = "Generate a concise 4–6 word title for a conversation that started with:\n" +
+                "User: $userMessage\n" +
+                "Assistant: $assistantMessage\n" +
+                "Reply with only the title, no punctuation."
+        return llmClient.completePrompt(prompt)
     }
 
     private suspend fun buildHistory(chatId: String): List<Message> =

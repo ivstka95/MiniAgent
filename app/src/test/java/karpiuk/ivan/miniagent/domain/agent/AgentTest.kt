@@ -81,16 +81,14 @@ class AgentTest {
     }
 
     @Test
-    fun `generateTitle calls llmClient with prompt containing user and assistant text`() = runTest {
+    fun `generateTitle calls completePrompt with prompt containing user and assistant text`() = runTest {
         llmClient.result = LlmResult(assistantText = "Kotlin coroutines explained", inputTokens = 10, outputTokens = 5)
 
         agent.generateTitle("How do coroutines work?", "Coroutines are lightweight threads...")
 
-        val sent = llmClient.capturedMessages.last()
-        assertEquals(1, sent.size)
-        assertEquals(Role.USER, sent[0].role)
-        assertTrue(sent[0].content.contains("How do coroutines work?"))
-        assertTrue(sent[0].content.contains("Coroutines are lightweight threads..."))
+        val prompt = llmClient.capturedPrompts.last()
+        assertTrue(prompt.contains("How do coroutines work?"))
+        assertTrue(prompt.contains("Coroutines are lightweight threads..."))
     }
 
     @Test

@@ -32,6 +32,21 @@ class LlmClientImpl @Inject constructor(private val api: AnthropicApi) : LlmClie
         )
     }
 
+    override suspend fun completePrompt(prompt: String): String {
+        val request = AnthropicRequestDto(
+            model = MODEL,
+            maxTokens = MAX_TOKENS,
+            messages = listOf(MessageDto(role = "user", content = prompt)),
+        )
+        val response = try {
+            api.createMessage(request)
+        } catch (e: Exception) {
+            throw LlmException("LLM request failed: ${e.message}", e)
+        }
+        return response.content.firstOrNull { it.type == "text" }?.text?.trim()
+            ?: throw LlmException("No text block in LLM response")
+    }
+
     private fun Role.toApiString() = when (this) {
         Role.USER -> "user"
         Role.ASSISTANT -> "assistant"

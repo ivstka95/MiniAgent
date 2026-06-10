@@ -12,9 +12,15 @@ class FakeLlmClient : LlmClient {
         thinkingTokens = 0,
     )
     val capturedMessages = mutableListOf<List<Message>>()
+    val capturedPrompts = mutableListOf<String>()
 
     override suspend fun complete(messages: List<Message>): LlmResult {
         capturedMessages.add(messages.toList())
         return result
+    }
+
+    override suspend fun completePrompt(prompt: String): String {
+        capturedPrompts.add(prompt)
+        return result.assistantText.trim()
     }
 }

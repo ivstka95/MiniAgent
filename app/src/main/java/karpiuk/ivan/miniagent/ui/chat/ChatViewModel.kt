@@ -62,10 +62,23 @@ class ChatViewModel @Inject constructor(
         val input = _inputText.value.trim()
         if (input.isBlank() || _isSending.value) return
         viewModelScope.launch {
+            val isFirstMessage = repository.getMessagesOnce(chatId).isEmpty()
             _isSending.value = true
             _inputText.value = ""
             try {
-                agent.sendMessage(chatId, input)
+                val response = agent.sendMessage(chatId, input)
+                if (isFirstMessage) {
+                    launch {
+                        try {
+                            val title = agent.generateTitle(input, response.replyText)
+                            repository.updateChatTitle(chatId, title)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            // keep "New chat" on title-generation failure
+                        }
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

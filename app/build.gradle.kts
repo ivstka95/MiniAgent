@@ -5,16 +5,12 @@ plugins {
 
 android {
     namespace = "karpiuk.ivan.miniagent"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "karpiuk.ivan.miniagent"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 

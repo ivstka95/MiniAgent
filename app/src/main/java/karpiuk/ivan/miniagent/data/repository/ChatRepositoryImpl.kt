@@ -41,6 +41,10 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun getMessagesOnce(chatId: String): List<Message> =
         messageDao.getByChat(chatId).map(MessageEntity::toDomain)
 
+    override suspend fun updateChatTitle(chatId: String, title: String) {
+        chatDao.updateTitle(chatId, title)
+    }
+
     override suspend fun deleteChat(chatId: String) {
         chatDao.deleteById(chatId)
     }

@@ -60,4 +60,14 @@ class ChatDaoTest {
         val result = dao.observeChats().first()
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `updateTitle changes title for existing chat`() = runTest {
+        dao.insert(ChatEntity(id = "c1", title = "New chat", createdAt = 1_000L))
+
+        dao.updateTitle("c1", "Kotlin coroutines explained")
+
+        val result = dao.observeChats().first()
+        assertEquals("Kotlin coroutines explained", result.first().title)
+    }
 }

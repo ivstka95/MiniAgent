@@ -37,8 +37,16 @@ class FakeChatRepository : ChatRepository {
     override suspend fun getMessagesOnce(chatId: String): List<Message> =
         messages.value.filter { it.chatId == chatId }.sortedBy { it.timestamp }
 
+    override suspend fun updateChatTitle(chatId: String, title: String) {
+        chats.value = chats.value.map { if (it.id == chatId) it.copy(title = title) else it }
+    }
+
     override suspend fun deleteChat(chatId: String) {
         chats.value = chats.value.filter { it.id != chatId }
         messages.value = messages.value.filter { it.chatId != chatId }
+    }
+
+    fun seedChat(chat: Chat) {
+        chats.value = chats.value + chat
     }
 }

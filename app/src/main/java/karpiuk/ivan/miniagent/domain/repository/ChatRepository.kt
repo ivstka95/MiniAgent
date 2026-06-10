@@ -10,5 +10,6 @@ interface ChatRepository {
     suspend fun createChat(title: String): Chat
     suspend fun addMessage(message: Message)
     suspend fun getMessagesOnce(chatId: String): List<Message>
+    suspend fun updateChatTitle(chatId: String, title: String)
     suspend fun deleteChat(chatId: String)
 }

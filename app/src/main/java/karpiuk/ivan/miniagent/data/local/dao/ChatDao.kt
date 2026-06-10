@@ -15,6 +15,9 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(chat: ChatEntity)
 
+    @Query("UPDATE chats SET title = :title WHERE id = :chatId")
+    suspend fun updateTitle(chatId: String, title: String)
+
     @Query("DELETE FROM chats WHERE id = :chatId")
     suspend fun deleteById(chatId: String)
 }

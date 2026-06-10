@@ -7,6 +7,7 @@ import karpiuk.ivan.miniagent.testing.FakeLlmClient
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -77,5 +78,27 @@ class AgentTest {
         assertEquals(100, response.inputTokens)
         assertEquals(50, response.outputTokens)
         assertEquals(10, response.thinkingTokens)
+    }
+
+    @Test
+    fun `generateTitle calls llmClient with prompt containing user and assistant text`() = runTest {
+        llmClient.result = LlmResult(assistantText = "Kotlin coroutines explained", inputTokens = 10, outputTokens = 5)
+
+        agent.generateTitle("How do coroutines work?", "Coroutines are lightweight threads...")
+
+        val sent = llmClient.capturedMessages.last()
+        assertEquals(1, sent.size)
+        assertEquals(Role.USER, sent[0].role)
+        assertTrue(sent[0].content.contains("How do coroutines work?"))
+        assertTrue(sent[0].content.contains("Coroutines are lightweight threads..."))
+    }
+
+    @Test
+    fun `generateTitle returns trimmed llm response`() = runTest {
+        llmClient.result = LlmResult(assistantText = "  Kotlin coroutines explained  ", inputTokens = 10, outputTokens = 5)
+
+        val title = agent.generateTitle("How do coroutines work?", "Coroutines are lightweight threads...")
+
+        assertEquals("Kotlin coroutines explained", title)
     }
 }

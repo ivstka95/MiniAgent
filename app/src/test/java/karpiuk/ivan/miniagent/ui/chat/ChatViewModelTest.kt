@@ -3,6 +3,7 @@ package karpiuk.ivan.miniagent.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.agent.AgentResponse
@@ -10,7 +11,9 @@ import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.testing.FakeChatRepository
 import karpiuk.ivan.miniagent.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -35,7 +38,7 @@ class ChatViewModelTest {
 
     @Before
     fun setUp() {
-        coEvery { agent.sendMessage(any(), any()) } returns AgentResponse("reply", 10, 5)
+        coEvery { agent.sendMessage(any(), any()) } returns AgentResponse(replyText = "reply", inputTokens = 10, outputTokens = 5)
         viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)))
     }
 
@@ -146,5 +149,32 @@ class ChatViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `sendMessage does nothing when input is blank`() = runTest {
+        // Don't set any input (it defaults to "")
+        viewModel.sendMessage()
+        coVerify(exactly = 0) { agent.sendMessage(any(), any()) }
+    }
+
+    @Test
+    fun `sendMessage does nothing when already sending`() = runTest {
+        // Simulate already-sending state by making agent suspend indefinitely
+        val deferred = CompletableDeferred<AgentResponse>()
+        coEvery { agent.sendMessage(any(), any()) } coAnswers { deferred.await() }
+
+        viewModel.updateInput("first")
+        viewModel.sendMessage()  // starts coroutine, suspends at deferred.await()
+
+        // Now _isSending is true (coroutine suspended at agent call);
+        // second attempt should be a no-op
+        viewModel.updateInput("second")
+        viewModel.sendMessage()
+
+        deferred.complete(AgentResponse(replyText = "r", inputTokens = 1, outputTokens = 1))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { agent.sendMessage(any(), any()) }
     }
 }

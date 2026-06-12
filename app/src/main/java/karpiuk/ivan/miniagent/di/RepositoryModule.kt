@@ -10,6 +10,9 @@ import karpiuk.ivan.miniagent.data.repository.LlmClientImpl
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.agent.LlmClient
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 
 @Module
@@ -27,7 +30,16 @@ abstract class RepositoryModule {
     companion object {
         @Provides
         @Singleton
-        fun provideAgent(repository: ChatRepository, llmClient: LlmClient): Agent =
-            Agent(repository, llmClient)
+        @ApplicationScope
+        fun provideApplicationScope(): CoroutineScope =
+            CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        @Provides
+        @Singleton
+        fun provideAgent(
+            repository: ChatRepository,
+            llmClient: LlmClient,
+            @ApplicationScope scope: CoroutineScope,
+        ): Agent = Agent(repository, llmClient, scope)
     }
 }

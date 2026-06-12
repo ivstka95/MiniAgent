@@ -2,10 +2,15 @@ package karpiuk.ivan.miniagent.data.remote
 
 import karpiuk.ivan.miniagent.data.remote.dto.AnthropicRequestDto
 import karpiuk.ivan.miniagent.data.remote.dto.AnthropicResponseDto
+import karpiuk.ivan.miniagent.data.remote.dto.CountTokensRequestDto
+import karpiuk.ivan.miniagent.data.remote.dto.CountTokensResponseDto
 import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface AnthropicApi {
     @POST("v1/messages")
     suspend fun createMessage(@Body request: AnthropicRequestDto): AnthropicResponseDto
+
+    @POST("v1/messages/count_tokens")
+    suspend fun countTokens(@Body request: CountTokensRequestDto): CountTokensResponseDto
 }

@@ -6,4 +6,5 @@ data class Message(
     val role: Role,
     val content: String,
     val timestamp: Long,
+    val tokenCount: Int? = null,
 )

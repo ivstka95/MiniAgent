@@ -5,4 +5,5 @@ data class AgentResponse(
     val inputTokens: Int,
     val outputTokens: Int,
     val thinkingTokens: Int = 0,
+    val conversationTotalTokens: Int,
 )

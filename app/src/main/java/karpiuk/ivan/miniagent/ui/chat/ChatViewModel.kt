@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.model.Message
+import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+fun interface BigTextProvider {
+    suspend fun load(): String
+}
+
 data class ChatUiState(
     val chatId: String,
     val chatTitle: String = "Chat",
@@ -24,6 +29,7 @@ data class ChatUiState(
     val inputText: String = "",
     val isSending: Boolean = false,
     val error: String? = null,
+    val tokenStatsDisplay: String? = null,
 )
 
 @HiltViewModel
@@ -31,6 +37,7 @@ class ChatViewModel @Inject constructor(
     private val agent: Agent,
     private val repository: ChatRepository,
     savedStateHandle: SavedStateHandle,
+    private val bigTextProvider: BigTextProvider,
 ) : ViewModel() {
 
     private val chatId: String = checkNotNull(savedStateHandle["chatId"])
@@ -46,6 +53,17 @@ class ChatViewModel @Inject constructor(
         _isSending,
         _error,
     ) { title, messages, input, isSending, error ->
+        var inputToks = 0; var outputToks = 0
+        messages.forEach { m ->
+            when (m.role) {
+                Role.USER -> inputToks += m.tokenCount ?: 0
+                Role.ASSISTANT -> outputToks += m.tokenCount ?: 0
+            }
+        }
+        val tokenStatsDisplay = if (messages.isNotEmpty()) {
+            val cost = (inputToks * 1.0 + outputToks * 5.0) / 1_000_000
+            "Σ ${inputToks + outputToks} tokens · ${String.format(java.util.Locale.US, "\$%.6f", cost)}"
+        } else null
         ChatUiState(
             chatId = chatId,
             chatTitle = title,
@@ -53,6 +71,7 @@ class ChatViewModel @Inject constructor(
             inputText = input,
             isSending = isSending,
             error = error,
+            tokenStatsDisplay = tokenStatsDisplay,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatUiState(chatId = chatId))
 
@@ -60,12 +79,25 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage() {
         val input = _inputText.value.trim()
-        if (input.isBlank() || _isSending.value) return
+        if (input.isBlank()) return
+        sendWithGuard {
+            _inputText.value = ""
+            agent.sendMessage(chatId, input)
+        }
+    }
+
+    fun sendBigText() = sendWithGuard {
+        agent.sendMessage(chatId, bigTextProvider.load())
+    }
+
+    fun clearError() { _error.value = null }
+
+    private fun sendWithGuard(block: suspend () -> Unit) {
+        if (_isSending.value) return
         viewModelScope.launch {
             _isSending.value = true
-            _inputText.value = ""
             try {
-                agent.sendMessage(chatId, input)
+                block()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -75,6 +107,4 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-
-    fun clearError() { _error.value = null }
 }

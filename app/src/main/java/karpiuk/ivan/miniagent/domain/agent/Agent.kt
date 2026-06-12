@@ -14,7 +14,8 @@ class Agent(
     private val scope: CoroutineScope,
 ) {
     suspend fun sendMessage(chatId: String, userInput: String): AgentResponse {
-        val isFirstMessage = repository.getMessagesOnce(chatId).isEmpty()
+        val prevMessages = repository.getMessagesOnce(chatId)
+        val isFirstMessage = prevMessages.isEmpty()
         val userMessage = Message(
             id = UUID.randomUUID().toString(),
             chatId = chatId,
@@ -22,15 +23,21 @@ class Agent(
             content = userInput,
             timestamp = System.currentTimeMillis(),
         )
-        repository.addMessage(userMessage)
-        val history = buildHistory(chatId)
-        val result = llmClient.complete(history)
+        val userTokenCount = try {
+            llmClient.countTokens(listOf(userMessage))
+        } catch (_: Exception) {
+            null
+        }
+        val savedUserMessage = userMessage.copy(tokenCount = userTokenCount)
+        repository.addMessage(savedUserMessage)
+        val result = llmClient.complete(prevMessages + savedUserMessage)
         val assistantMessage = Message(
             id = UUID.randomUUID().toString(),
             chatId = chatId,
             role = Role.ASSISTANT,
             content = result.assistantText,
             timestamp = System.currentTimeMillis(),
+            tokenCount = result.outputTokens,
         )
         repository.addMessage(assistantMessage)
         if (isFirstMessage) {
@@ -50,6 +57,7 @@ class Agent(
             inputTokens = result.inputTokens,
             outputTokens = result.outputTokens,
             thinkingTokens = result.thinkingTokens,
+            conversationTotalTokens = result.inputTokens + result.outputTokens,
         )
     }
 
@@ -60,7 +68,4 @@ class Agent(
                 "Reply with only the title, no punctuation."
         return llmClient.completePrompt(prompt)
     }
-
-    private suspend fun buildHistory(chatId: String): List<Message> =
-        repository.getMessagesOnce(chatId)
 }

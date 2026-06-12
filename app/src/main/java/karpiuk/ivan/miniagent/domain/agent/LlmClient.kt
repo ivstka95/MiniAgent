@@ -5,4 +5,5 @@ import karpiuk.ivan.miniagent.domain.model.Message
 interface LlmClient {
     suspend fun complete(messages: List<Message>): LlmResult
     suspend fun completePrompt(prompt: String): String
+    suspend fun countTokens(messages: List<Message>): Int
 }

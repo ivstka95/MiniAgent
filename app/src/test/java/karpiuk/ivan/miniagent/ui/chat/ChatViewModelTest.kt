@@ -34,12 +34,13 @@ class ChatViewModelTest {
     private val fakeRepository = FakeChatRepository()
     private val agent = mockk<Agent>()
     private val chatId = "chat-1"
+    private val bigTextProvider = BigTextProvider { "hello big text" }
     private lateinit var viewModel: ChatViewModel
 
     @Before
     fun setUp() {
-        coEvery { agent.sendMessage(any(), any()) } returns AgentResponse(replyText = "reply", inputTokens = 10, outputTokens = 5)
-        viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)))
+        coEvery { agent.sendMessage(any(), any()) } returns AgentResponse(replyText = "reply", inputTokens = 10, outputTokens = 5, conversationTotalTokens = 15)
+        viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)), bigTextProvider)
     }
 
     @Test
@@ -172,7 +173,30 @@ class ChatViewModelTest {
         viewModel.updateInput("second")
         viewModel.sendMessage()
 
-        deferred.complete(AgentResponse(replyText = "r", inputTokens = 1, outputTokens = 1))
+        deferred.complete(AgentResponse(replyText = "r", inputTokens = 1, outputTokens = 1, conversationTotalTokens = 2))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { agent.sendMessage(any(), any()) }
+    }
+
+    @Test
+    fun `sendBigText sends resource content as message`() = runTest {
+        viewModel.sendBigText()
+        advanceUntilIdle()
+
+        coVerify { agent.sendMessage(chatId, "hello big text") }
+    }
+
+    @Test
+    fun `sendBigText does nothing when already sending`() = runTest {
+        val deferred = CompletableDeferred<AgentResponse>()
+        coEvery { agent.sendMessage(any(), any()) } coAnswers { deferred.await() }
+
+        viewModel.updateInput("first")
+        viewModel.sendMessage()
+        viewModel.sendBigText()
+
+        deferred.complete(AgentResponse(replyText = "r", inputTokens = 1, outputTokens = 1, conversationTotalTokens = 2))
         advanceUntilIdle()
 
         coVerify(exactly = 1) { agent.sendMessage(any(), any()) }

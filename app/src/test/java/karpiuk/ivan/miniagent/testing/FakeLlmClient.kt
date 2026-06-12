@@ -21,6 +21,8 @@ class FakeLlmClient : LlmClient {
 
     var completePromptException: Exception? = null
 
+    override suspend fun countTokens(messages: List<Message>): Int = 0
+
     override suspend fun completePrompt(prompt: String): String {
         capturedPrompts.add(prompt)
         completePromptException?.let { throw it }

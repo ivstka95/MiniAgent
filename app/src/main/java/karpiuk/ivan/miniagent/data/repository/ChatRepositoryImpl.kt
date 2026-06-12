@@ -61,6 +61,7 @@ private fun MessageEntity.toDomain() = Message(
     role = Role.valueOf(role.uppercase()),
     content = content,
     timestamp = timestamp,
+    tokenCount = tokenCount,
 )
 
 private fun Message.toEntity() = MessageEntity(
@@ -69,4 +70,5 @@ private fun Message.toEntity() = MessageEntity(
     role = role.name.lowercase(),
     content = content,
     timestamp = timestamp,
+    tokenCount = tokenCount,
 )

@@ -7,6 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import dagger.hilt.android.AndroidEntryPoint
 import karpiuk.ivan.miniagent.ui.ChatAppScreen
 import karpiuk.ivan.miniagent.ui.theme.MiniAgentTheme
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlin.coroutines.coroutineContext
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

@@ -20,4 +20,10 @@ interface ChatDao {
 
     @Query("DELETE FROM chats WHERE id = :chatId")
     suspend fun deleteById(chatId: String)
+
+    @Query("SELECT * FROM chats WHERE id = :chatId LIMIT 1")
+    suspend fun getById(chatId: String): ChatEntity?
+
+    @Query("UPDATE chats SET summary = :summary, summaryCoversCount = :coversCount WHERE id = :chatId")
+    suspend fun updateSummary(chatId: String, summary: String, coversCount: Int)
 }

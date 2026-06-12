@@ -1,5 +1,8 @@
 package karpiuk.ivan.miniagent.domain.agent
 
+import karpiuk.ivan.miniagent.domain.context.ContextStrategy
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
@@ -12,6 +15,8 @@ class Agent(
     private val repository: ChatRepository,
     private val llmClient: LlmClient,
     private val scope: CoroutineScope,
+    private val strategyManager: ContextStrategyManager,
+    private val strategies: Map<ContextStrategyType, ContextStrategy>,
 ) {
     suspend fun sendMessage(chatId: String, userInput: String): AgentResponse {
         val prevMessages = repository.getMessagesOnce(chatId)
@@ -30,7 +35,11 @@ class Agent(
         }
         val savedUserMessage = userMessage.copy(tokenCount = userTokenCount)
         repository.addMessage(savedUserMessage)
-        val result = llmClient.complete(prevMessages + savedUserMessage)
+        val allMessages = prevMessages + savedUserMessage
+        val activeStrategy = strategies[strategyManager.activeType.value]
+            ?: strategies[ContextStrategyType.NONE]!!
+        val contextMessages = activeStrategy.buildContext(allMessages)
+        val result = llmClient.complete(contextMessages)
         val assistantMessage = Message(
             id = UUID.randomUUID().toString(),
             chatId = chatId,

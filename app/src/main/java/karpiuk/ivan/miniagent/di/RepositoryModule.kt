@@ -9,6 +9,11 @@ import karpiuk.ivan.miniagent.data.repository.ChatRepositoryImpl
 import karpiuk.ivan.miniagent.data.repository.LlmClientImpl
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.agent.LlmClient
+import karpiuk.ivan.miniagent.domain.context.ContextStrategy
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
+import karpiuk.ivan.miniagent.domain.context.NoCompressionStrategy
+import karpiuk.ivan.miniagent.domain.context.SummarizationStrategy
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,10 +41,22 @@ abstract class RepositoryModule {
 
         @Provides
         @Singleton
+        fun provideStrategyMap(
+            none: NoCompressionStrategy,
+            summarization: SummarizationStrategy,
+        ): Map<ContextStrategyType, ContextStrategy> = mapOf(
+            ContextStrategyType.NONE to none,
+            ContextStrategyType.SUMMARIZATION to summarization,
+        )
+
+        @Provides
+        @Singleton
         fun provideAgent(
             repository: ChatRepository,
             llmClient: LlmClient,
             @ApplicationScope scope: CoroutineScope,
-        ): Agent = Agent(repository, llmClient, scope)
+            strategyManager: ContextStrategyManager,
+            strategies: @JvmSuppressWildcards Map<ContextStrategyType, ContextStrategy>,
+        ): Agent = Agent(repository, llmClient, scope, strategyManager, strategies)
     }
 }

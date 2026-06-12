@@ -46,7 +46,20 @@ class FakeChatRepository : ChatRepository {
         messages.value = messages.value.filter { it.chatId != chatId }
     }
 
+    override suspend fun getChatById(chatId: String): Chat? =
+        chats.value.find { it.id == chatId }
+
+    override suspend fun updateChatSummary(chatId: String, summary: String, coversCount: Int) {
+        chats.value = chats.value.map {
+            if (it.id == chatId) it.copy(summary = summary, summaryCoversCount = coversCount) else it
+        }
+    }
+
     fun seedChat(chat: Chat) {
         chats.value = chats.value + chat
+    }
+
+    fun seedChat(chatId: String) {
+        chats.value = chats.value + Chat(id = chatId, title = "Test Chat", createdAt = 0L)
     }
 }

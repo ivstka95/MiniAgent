@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import karpiuk.ivan.miniagent.ui.chat.ChatRoute
 import karpiuk.ivan.miniagent.ui.chat.HomeScreen
 import karpiuk.ivan.miniagent.ui.chats.ChatListDrawer
@@ -67,8 +68,12 @@ fun ChatAppScreen(
             composable<Home> {
                 HomeScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
             }
-            composable<Chat> {
-                ChatRoute(onOpenDrawer = { scope.launch { drawerState.open() } })
+            composable<Chat> { backStackEntry ->
+                val sourceChatId = backStackEntry.toRoute<Chat>().chatId
+                ChatRoute(
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onBranch = { messageId -> chatsViewModel.branchChat(sourceChatId, messageId) },
+                )
             }
         }
     }

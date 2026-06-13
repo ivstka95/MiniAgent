@@ -55,6 +55,24 @@ class FakeChatRepository : ChatRepository {
         }
     }
 
+    override suspend fun updateChatFacts(chatId: String, facts: String) {
+        chats.value = chats.value.map {
+            if (it.id == chatId) it.copy(facts = facts) else it
+        }
+    }
+
+    override suspend fun branchChatFromMessage(sourceChatId: String, messageId: String): String {
+        val title = getChatById(sourceChatId)?.title ?: "Chat"
+        val all = getMessagesOnce(sourceChatId)
+        val cutoff = all.indexOfFirst { it.id == messageId }
+        val toCopy = if (cutoff >= 0) all.take(cutoff + 1) else all
+        val branch = createChat("$title (branch)")
+        toCopy.forEach { message ->
+            addMessage(message.copy(id = UUID.randomUUID().toString(), chatId = branch.id))
+        }
+        return branch.id
+    }
+
     fun seedChat(chat: Chat) {
         chats.value = chats.value + chat
     }

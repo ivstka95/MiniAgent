@@ -10,4 +10,5 @@ data class ChatEntity(
     val createdAt: Long,
     val summary: String? = null,
     val summaryCoversCount: Int = 0,
+    val facts: String? = null,
 )

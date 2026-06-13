@@ -55,6 +55,19 @@ class LlmClientImpl @Inject constructor(private val api: AnthropicApi) : LlmClie
         return completePrompt(prompt)
     }
 
+    override suspend fun extractFacts(currentFacts: String?, messages: List<Message>): String {
+        val existing = if (currentFacts.isNullOrBlank()) "(none yet)" else currentFacts
+        val conversation =
+            messages.joinToString("\n") { "${it.role.toApiString().replaceFirstChar(Char::uppercase)}: ${it.content}" }
+        val prompt = "You maintain a running key-value fact store for a conversation. " +
+            "Given the existing facts and the conversation, return an UPDATED set of facts as a compact JSON " +
+            "object of key-value pairs, capturing the user's goal, constraints, preferences, decisions, and " +
+            "agreements. Merge new information into the existing facts; do not lose prior facts unless they are " +
+            "contradicted. Keep it concise. Return ONLY the JSON object, with no prose and no markdown fences.\n\n" +
+            "Existing facts: $existing\n\nConversation:\n$conversation"
+        return completePrompt(prompt)
+    }
+
     private suspend fun <T> wrapApiErrors(
         prefix: String = "LLM request failed",
         block: suspend () -> T,

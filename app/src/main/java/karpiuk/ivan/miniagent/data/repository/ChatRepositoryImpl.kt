@@ -55,6 +55,22 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun updateChatSummary(chatId: String, summary: String, coversCount: Int) {
         chatDao.updateSummary(chatId, summary, coversCount)
     }
+
+    override suspend fun updateChatFacts(chatId: String, facts: String) {
+        chatDao.updateFacts(chatId, facts)
+    }
+
+    override suspend fun branchChatFromMessage(sourceChatId: String, messageId: String): String {
+        val title = getChatById(sourceChatId)?.title ?: "Chat"
+        val all = getMessagesOnce(sourceChatId) // ordered by timestamp ASC
+        val cutoff = all.indexOfFirst { it.id == messageId }
+        val toCopy = if (cutoff >= 0) all.take(cutoff + 1) else all
+        val branch = createChat("$title (branch)")
+        toCopy.forEach { message ->
+            addMessage(message.copy(id = UUID.randomUUID().toString(), chatId = branch.id))
+        }
+        return branch.id
+    }
 }
 
 // — Mappers —
@@ -65,6 +81,7 @@ private fun ChatEntity.toDomain() = Chat(
     createdAt = createdAt,
     summary = summary,
     summaryCoversCount = summaryCoversCount,
+    facts = facts,
 )
 private fun Chat.toEntity() = ChatEntity(
     id = id,
@@ -72,6 +89,7 @@ private fun Chat.toEntity() = ChatEntity(
     createdAt = createdAt,
     summary = summary,
     summaryCoversCount = summaryCoversCount,
+    facts = facts,
 )
 
 private fun MessageEntity.toDomain() = Message(

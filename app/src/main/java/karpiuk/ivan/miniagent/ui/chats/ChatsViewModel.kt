@@ -37,4 +37,11 @@ class ChatsViewModel @Inject constructor(
             repository.deleteChat(chatId)
         }
     }
+
+    fun branchChat(sourceChatId: String, messageId: String) {
+        viewModelScope.launch {
+            val newId = repository.branchChatFromMessage(sourceChatId, messageId)
+            _newChatEventChannel.send(newId) // existing collector navigates to the new branch
+        }
+    }
 }

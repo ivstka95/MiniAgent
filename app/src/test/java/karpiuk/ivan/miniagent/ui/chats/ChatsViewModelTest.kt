@@ -55,6 +55,32 @@ class ChatsViewModelTest {
     }
 
     @Test
+    fun `branchChat emits the new branch chat id via newChatEvent`() = runTest {
+        val source = fakeRepository.createChat("Original")
+        fakeRepository.addMessage(
+            karpiuk.ivan.miniagent.domain.model.Message(
+                id = "m0",
+                chatId = source.id,
+                role = karpiuk.ivan.miniagent.domain.model.Role.USER,
+                content = "hi",
+                timestamp = 0L,
+            ),
+        )
+
+        viewModel.newChatEvent.test {
+            viewModel.branchChat(source.id, "m0")
+            val branchId = awaitItem()
+            assertTrue(branchId != source.id)
+            fakeRepository.observeChats().test {
+                val chats = awaitItem()
+                assertTrue(chats.any { it.id == branchId })
+                cancelAndIgnoreRemainingEvents()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `deleteChat removes chat from repository`() = runTest {
         val chat = fakeRepository.createChat("To delete")
 

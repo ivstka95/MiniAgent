@@ -1,7 +1,8 @@
 package karpiuk.ivan.miniagent.ui.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,7 +58,7 @@ import karpiuk.ivan.miniagent.domain.model.Role
 @Composable
 fun ChatRoute(
     onOpenDrawer: () -> Unit,
-    onStrategyChange: (ContextStrategyType) -> Unit = {},
+    onBranch: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
@@ -70,6 +71,7 @@ fun ChatRoute(
         onSendBigText = viewModel::sendBigText,
         onClearError = viewModel::clearError,
         onStrategyChange = viewModel::setStrategy,
+        onBranchMessage = onBranch,
         modifier = modifier,
     )
 }
@@ -84,6 +86,7 @@ fun ChatScreen(
     onSendBigText: () -> Unit,
     onClearError: () -> Unit,
     onStrategyChange: (ContextStrategyType) -> Unit,
+    onBranchMessage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -162,7 +165,7 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(state.messages, key = { it.id }) { message ->
-                    MessageItem(message)
+                    MessageItem(message, onBranch = { onBranchMessage(message.id) })
                 }
             }
             if (state.isSending) {
@@ -218,45 +221,65 @@ fun HomeScreen(
 
 private const val COLLAPSED_MAX_LINES = 5
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageItem(
     message: Message,
+    onBranch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.role == Role.USER
     var expanded by remember { mutableStateOf(false) }
     var hasOverflow by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Column(horizontalAlignment = if (isUser) Alignment.End else Alignment.Start) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (isUser)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                    .clickable(enabled = hasOverflow || expanded) { expanded = !expanded }
-                    .padding(8.dp),
-            ) {
-                Text(
-                    text = message.content,
-                    maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_MAX_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { if (!expanded) hasOverflow = it.hasVisualOverflow },
-                )
-                if (hasOverflow || expanded) {
+            Box {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 280.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isUser)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        .combinedClickable(
+                            onClick = { if (hasOverflow || expanded) expanded = !expanded },
+                            onLongClick = { menuExpanded = true },
+                        )
+                        .padding(8.dp),
+                ) {
                     Text(
-                        text = if (expanded) "Show less" else "Show more",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 2.dp),
+                        text = message.content,
+                        maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_MAX_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                        onTextLayout = { if (!expanded) hasOverflow = it.hasVisualOverflow },
+                    )
+                    if (hasOverflow || expanded) {
+                        Text(
+                            text = if (expanded) "Show less" else "Show more",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Branch from here") },
+                        onClick = {
+                            menuExpanded = false
+                            onBranch()
+                        },
                     )
                 }
             }

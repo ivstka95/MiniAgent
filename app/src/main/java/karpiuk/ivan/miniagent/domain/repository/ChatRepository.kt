@@ -14,4 +14,11 @@ interface ChatRepository {
     suspend fun deleteChat(chatId: String)
     suspend fun getChatById(chatId: String): Chat?
     suspend fun updateChatSummary(chatId: String, summary: String, coversCount: Int)
+    suspend fun updateChatFacts(chatId: String, facts: String)
+
+    /**
+     * Forks [sourceChatId] at [messageId]: creates a new chat copying all messages from the start
+     * up to and INCLUDING that message, then returns the new chat's id. The source chat is unchanged.
+     */
+    suspend fun branchChatFromMessage(sourceChatId: String, messageId: String): String
 }

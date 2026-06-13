@@ -1,3 +1,3 @@
 package karpiuk.ivan.miniagent.domain.context
 
-enum class ContextStrategyType { NONE, SUMMARIZATION, SLIDING_WINDOW }
+enum class ContextStrategyType { NONE, SUMMARIZATION, SLIDING_WINDOW, FACTS }

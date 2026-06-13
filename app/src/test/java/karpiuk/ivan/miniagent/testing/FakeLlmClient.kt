@@ -38,4 +38,14 @@ class FakeLlmClient : LlmClient {
         summarizeException?.let { throw it }
         return summarizeResult
     }
+
+    var extractFactsResult: String = "{}"
+    var extractFactsException: Exception? = null
+    val capturedExtractFacts = mutableListOf<Pair<String?, List<Message>>>()
+
+    override suspend fun extractFacts(currentFacts: String?, messages: List<Message>): String {
+        capturedExtractFacts.add(currentFacts to messages.toList())
+        extractFactsException?.let { throw it }
+        return extractFactsResult
+    }
 }

@@ -12,6 +12,7 @@ import karpiuk.ivan.miniagent.domain.agent.LlmClient
 import karpiuk.ivan.miniagent.domain.context.ContextStrategy
 import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
 import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
+import karpiuk.ivan.miniagent.domain.context.FactsStrategy
 import karpiuk.ivan.miniagent.domain.context.NoCompressionStrategy
 import karpiuk.ivan.miniagent.domain.context.SlidingWindowStrategy
 import karpiuk.ivan.miniagent.domain.context.SummarizationStrategy
@@ -46,10 +47,12 @@ abstract class RepositoryModule {
             none: NoCompressionStrategy,
             summarization: SummarizationStrategy,
             slidingWindow: SlidingWindowStrategy,
+            facts: FactsStrategy,
         ): Map<ContextStrategyType, ContextStrategy> = mapOf(
             ContextStrategyType.NONE to none,
             ContextStrategyType.SUMMARIZATION to summarization,
             ContextStrategyType.SLIDING_WINDOW to slidingWindow,
+            ContextStrategyType.FACTS to facts,
         )
 
         @Provides

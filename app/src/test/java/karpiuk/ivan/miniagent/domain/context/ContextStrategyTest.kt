@@ -1,5 +1,6 @@
 package karpiuk.ivan.miniagent.domain.context
 
+import karpiuk.ivan.miniagent.domain.model.Chat
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.testing.FakeChatRepository
@@ -177,5 +178,74 @@ class ContextStrategyTest {
     fun `SlidingWindowStrategy returns empty list unchanged`() = runTest {
         val strategy = SlidingWindowStrategy()
         assertTrue(strategy.buildContext(emptyList()).isEmpty())
+    }
+
+    // ——————————————— FactsStrategy ———————————————
+
+    @Test
+    fun `FactsStrategy calls extractFacts and persists the updated facts`() = runTest {
+        fakeRepository.seedChat(chatId)
+        fakeLlmClient.extractFactsResult = """{"goal":"learn Compose"}"""
+        val strategy = FactsStrategy(fakeLlmClient, fakeRepository)
+
+        strategy.buildContext(history(9))
+
+        assertEquals(1, fakeLlmClient.capturedExtractFacts.size)
+        assertEquals("""{"goal":"learn Compose"}""", fakeRepository.getChatById(chatId)?.facts)
+    }
+
+    @Test
+    fun `FactsStrategy returns facts message at front followed by the last N messages`() = runTest {
+        fakeRepository.seedChat(chatId)
+        fakeLlmClient.extractFactsResult = """{"goal":"ship app"}"""
+        val strategy = FactsStrategy(fakeLlmClient, fakeRepository)
+        val messages = history(9)
+
+        val result = strategy.buildContext(messages)
+
+        assertEquals(Role.USER, result.first().role)
+        assertTrue(result.first().content.contains("""{"goal":"ship app"}"""))
+        // facts message + last KEEP_LAST_N messages (window starts on ASSISTANT, no trim)
+        assertEquals(FactsStrategy.KEEP_LAST_N + 1, result.size)
+        assertEquals(messages.takeLast(FactsStrategy.KEEP_LAST_N), result.drop(1))
+    }
+
+    @Test
+    fun `FactsStrategy result starts with USER and alternates`() = runTest {
+        fakeRepository.seedChat(chatId)
+        fakeLlmClient.extractFactsResult = """{"k":"v"}"""
+        val strategy = FactsStrategy(fakeLlmClient, fakeRepository)
+
+        val result = strategy.buildContext(history(9))
+
+        assertEquals(Role.USER, result.first().role)
+        result.zipWithNext { a, b -> assertTrue(a.role != b.role) }
+    }
+
+    @Test
+    fun `FactsStrategy falls back to stored facts when extractFacts throws`() = runTest {
+        fakeRepository.seedChat(Chat(id = chatId, title = "Test Chat", createdAt = 0L, facts = """{"goal":"stored"}"""))
+        fakeLlmClient.extractFactsException = RuntimeException("network error")
+        val strategy = FactsStrategy(fakeLlmClient, fakeRepository)
+
+        val result = strategy.buildContext(history(9))
+
+        assertEquals(Role.USER, result.first().role)
+        assertTrue(result.first().content.contains("""{"goal":"stored"}"""))
+        // Persisted facts unchanged (extraction failed before persist)
+        assertEquals("""{"goal":"stored"}""", fakeRepository.getChatById(chatId)?.facts)
+    }
+
+    @Test
+    fun `FactsStrategy keeps alternation valid for very short history`() = runTest {
+        fakeRepository.seedChat(chatId)
+        fakeLlmClient.extractFactsResult = """{"k":"v"}"""
+        val strategy = FactsStrategy(fakeLlmClient, fakeRepository)
+
+        // Single USER message: window trims its leading USER → result is just the facts message.
+        val result = strategy.buildContext(history(1))
+
+        assertEquals(1, result.size)
+        assertEquals(Role.USER, result.first().role)
     }
 }

@@ -26,4 +26,7 @@ interface ChatDao {
 
     @Query("UPDATE chats SET summary = :summary, summaryCoversCount = :coversCount WHERE id = :chatId")
     suspend fun updateSummary(chatId: String, summary: String, coversCount: Int)
+
+    @Query("UPDATE chats SET facts = :facts WHERE id = :chatId")
+    suspend fun updateFacts(chatId: String, facts: String)
 }

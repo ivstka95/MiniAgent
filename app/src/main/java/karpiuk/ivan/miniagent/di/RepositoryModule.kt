@@ -13,6 +13,7 @@ import karpiuk.ivan.miniagent.domain.context.ContextStrategy
 import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
 import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
 import karpiuk.ivan.miniagent.domain.context.NoCompressionStrategy
+import karpiuk.ivan.miniagent.domain.context.SlidingWindowStrategy
 import karpiuk.ivan.miniagent.domain.context.SummarizationStrategy
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
 import kotlinx.coroutines.CoroutineScope
@@ -44,9 +45,11 @@ abstract class RepositoryModule {
         fun provideStrategyMap(
             none: NoCompressionStrategy,
             summarization: SummarizationStrategy,
+            slidingWindow: SlidingWindowStrategy,
         ): Map<ContextStrategyType, ContextStrategy> = mapOf(
             ContextStrategyType.NONE to none,
             ContextStrategyType.SUMMARIZATION to summarization,
+            ContextStrategyType.SLIDING_WINDOW to slidingWindow,
         )
 
         @Provides

@@ -137,4 +137,45 @@ class ContextStrategyTest {
         assertEquals(Role.USER, result[0].role)
         assertEquals(Role.ASSISTANT, result[1].role)
     }
+
+    // ——————————————— SlidingWindowStrategy ———————————————
+
+    @Test
+    fun `SlidingWindowStrategy keeps only the last WINDOW_SIZE messages when history is larger`() = runTest {
+        val strategy = SlidingWindowStrategy()
+        val messages = history(10)
+
+        val result = strategy.buildContext(messages)
+
+        // Result is bounded by WINDOW_SIZE and is a suffix of the full history.
+        assertTrue(result.size <= SlidingWindowStrategy.WINDOW_SIZE)
+        assertEquals(messages.takeLast(result.size), result)
+    }
+
+    @Test
+    fun `SlidingWindowStrategy result starts with USER and alternates`() = runTest {
+        val strategy = SlidingWindowStrategy()
+        // history(10) ends with ASSISTANT at index 9; takeLast(6) starts at index 4 (USER).
+        // history(11) ends with USER; takeLast(6) starts at index 5 (ASSISTANT) → drop to start USER.
+        val messages = history(11)
+
+        val result = strategy.buildContext(messages)
+
+        assertEquals(Role.USER, result.first().role)
+        result.zipWithNext { a, b -> assertTrue(a.role != b.role) }
+    }
+
+    @Test
+    fun `SlidingWindowStrategy returns all messages when history is smaller than WINDOW_SIZE`() = runTest {
+        val strategy = SlidingWindowStrategy()
+        val messages = history(3)
+
+        assertEquals(messages, strategy.buildContext(messages))
+    }
+
+    @Test
+    fun `SlidingWindowStrategy returns empty list unchanged`() = runTest {
+        val strategy = SlidingWindowStrategy()
+        assertTrue(strategy.buildContext(emptyList()).isEmpty())
+    }
 }

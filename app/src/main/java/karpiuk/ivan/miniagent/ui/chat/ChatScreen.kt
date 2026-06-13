@@ -48,12 +48,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 
 @Composable
 fun ChatRoute(
     onOpenDrawer: () -> Unit,
+    onStrategyChange: (ContextStrategyType) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
@@ -65,6 +69,7 @@ fun ChatRoute(
         onSendMessage = viewModel::sendMessage,
         onSendBigText = viewModel::sendBigText,
         onClearError = viewModel::clearError,
+        onStrategyChange = viewModel::setStrategy,
         modifier = modifier,
     )
 }
@@ -78,6 +83,7 @@ fun ChatScreen(
     onSendMessage: () -> Unit,
     onSendBigText: () -> Unit,
     onClearError: () -> Unit,
+    onStrategyChange: (ContextStrategyType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -105,7 +111,7 @@ fun ChatScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(state.chatTitle) },
+                title = { Text(state.chatTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open drawer")
@@ -117,6 +123,26 @@ fun ChatScreen(
                         enabled = !state.isSending,
                     ) {
                         Text("Big")
+                    }
+                    var strategyMenuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        TextButton(onClick = { strategyMenuExpanded = true }) {
+                            Text(state.activeStrategyType.name)
+                        }
+                        DropdownMenu(
+                            expanded = strategyMenuExpanded,
+                            onDismissRequest = { strategyMenuExpanded = false },
+                        ) {
+                            ContextStrategyType.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.name) },
+                                    onClick = {
+                                        onStrategyChange(type)
+                                        strategyMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )

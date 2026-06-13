@@ -28,4 +28,14 @@ class FakeLlmClient : LlmClient {
         completePromptException?.let { throw it }
         return result.assistantText.trim()
     }
+
+    var summarizeResult: String = "fake summary"
+    var summarizeException: Exception? = null
+    val capturedSummarizeMessages = mutableListOf<List<Message>>()
+
+    override suspend fun summarize(messages: List<Message>): String {
+        capturedSummarizeMessages.add(messages.toList())
+        summarizeException?.let { throw it }
+        return summarizeResult
+    }
 }

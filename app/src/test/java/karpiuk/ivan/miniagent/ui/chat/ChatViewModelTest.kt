@@ -7,6 +7,8 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.agent.AgentResponse
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
 import karpiuk.ivan.miniagent.testing.FakeChatRepository
@@ -35,12 +37,13 @@ class ChatViewModelTest {
     private val agent = mockk<Agent>()
     private val chatId = "chat-1"
     private val bigTextProvider = BigTextProvider { "hello big text" }
+    private val strategyManager = ContextStrategyManager()
     private lateinit var viewModel: ChatViewModel
 
     @Before
     fun setUp() {
         coEvery { agent.sendMessage(any(), any()) } returns AgentResponse(replyText = "reply", inputTokens = 10, outputTokens = 5, conversationTotalTokens = 15)
-        viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)), bigTextProvider)
+        viewModel = ChatViewModel(agent, fakeRepository, SavedStateHandle(mapOf("chatId" to chatId)), bigTextProvider, strategyManager)
     }
 
     @Test
@@ -200,6 +203,17 @@ class ChatViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { agent.sendMessage(any(), any()) }
+    }
+
+    @Test
+    fun `setStrategy updates activeStrategyType in uiState`() = runTest {
+        viewModel.uiState.test {
+            awaitItem() // initial state
+            viewModel.setStrategy(ContextStrategyType.SUMMARIZATION)
+            val updated = awaitItem()
+            assertEquals(ContextStrategyType.SUMMARIZATION, updated.activeStrategyType)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
 }

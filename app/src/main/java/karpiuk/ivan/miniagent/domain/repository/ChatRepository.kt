@@ -12,4 +12,6 @@ interface ChatRepository {
     suspend fun getMessagesOnce(chatId: String): List<Message>
     suspend fun updateChatTitle(chatId: String, title: String)
     suspend fun deleteChat(chatId: String)
+    suspend fun getChatById(chatId: String): Chat?
+    suspend fun updateChatSummary(chatId: String, summary: String, coversCount: Int)
 }

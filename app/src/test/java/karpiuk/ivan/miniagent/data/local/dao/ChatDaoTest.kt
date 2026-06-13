@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -69,5 +70,25 @@ class ChatDaoTest {
 
         val result = dao.observeChats().first()
         assertEquals("Kotlin coroutines explained", result.first().title)
+    }
+
+    @Test
+    fun `getById returns correct chat`() = runTest {
+        val chat = ChatEntity(id = "c1", title = "Hello", createdAt = 1000L)
+        dao.insert(chat)
+        val result = dao.getById("c1")
+        assertNotNull(result)
+        assertEquals("c1", result!!.id)
+        assertEquals("Hello", result.title)
+    }
+
+    @Test
+    fun `updateSummary persists summary and coversCount`() = runTest {
+        dao.insert(ChatEntity(id = "c1", title = "Hello", createdAt = 1000L))
+        dao.updateSummary("c1", "A brief summary", 15)
+        val result = dao.getById("c1")
+        assertNotNull(result)
+        assertEquals("A brief summary", result!!.summary)
+        assertEquals(15, result.summaryCoversCount)
     }
 }

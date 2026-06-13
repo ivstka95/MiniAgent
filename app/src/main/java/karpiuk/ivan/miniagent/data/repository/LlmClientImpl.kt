@@ -49,6 +49,12 @@ class LlmClientImpl @Inject constructor(private val api: AnthropicApi) : LlmClie
             ?: throw LlmException("No text block in LLM response")
     }
 
+    override suspend fun summarize(messages: List<Message>): String {
+        val prompt = "Summarize the following conversation concisely, preserving key facts:\n\n" +
+            messages.joinToString("\n") { "${it.role.toApiString().replaceFirstChar(Char::uppercase)}: ${it.content}" }
+        return completePrompt(prompt)
+    }
+
     private suspend fun <T> wrapApiErrors(
         prefix: String = "LLM request failed",
         block: suspend () -> T,

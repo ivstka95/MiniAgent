@@ -48,12 +48,31 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun deleteChat(chatId: String) {
         chatDao.deleteById(chatId)
     }
+
+    override suspend fun getChatById(chatId: String): Chat? =
+        chatDao.getById(chatId)?.toDomain()
+
+    override suspend fun updateChatSummary(chatId: String, summary: String, coversCount: Int) {
+        chatDao.updateSummary(chatId, summary, coversCount)
+    }
 }
 
 // — Mappers —
 
-private fun ChatEntity.toDomain() = Chat(id = id, title = title, createdAt = createdAt)
-private fun Chat.toEntity() = ChatEntity(id = id, title = title, createdAt = createdAt)
+private fun ChatEntity.toDomain() = Chat(
+    id = id,
+    title = title,
+    createdAt = createdAt,
+    summary = summary,
+    summaryCoversCount = summaryCoversCount,
+)
+private fun Chat.toEntity() = ChatEntity(
+    id = id,
+    title = title,
+    createdAt = createdAt,
+    summary = summary,
+    summaryCoversCount = summaryCoversCount,
+)
 
 private fun MessageEntity.toDomain() = Message(
     id = id,

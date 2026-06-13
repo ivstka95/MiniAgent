@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import karpiuk.ivan.miniagent.domain.agent.Agent
 import karpiuk.ivan.miniagent.domain.model.Message
 import karpiuk.ivan.miniagent.domain.model.Role
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyManager
+import karpiuk.ivan.miniagent.domain.context.ContextStrategyType
 import karpiuk.ivan.miniagent.domain.repository.ChatRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +32,7 @@ data class ChatUiState(
     val isSending: Boolean = false,
     val error: String? = null,
     val tokenStatsDisplay: String? = null,
+    val activeStrategyType: ContextStrategyType = ContextStrategyType.NONE,
 )
 
 @HiltViewModel
@@ -38,6 +41,7 @@ class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     savedStateHandle: SavedStateHandle,
     private val bigTextProvider: BigTextProvider,
+    private val strategyManager: ContextStrategyManager,
 ) : ViewModel() {
 
     private val chatId: String = checkNotNull(savedStateHandle["chatId"])
@@ -46,32 +50,46 @@ class ChatViewModel @Inject constructor(
     private val _isSending = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<ChatUiState> = combine(
-        repository.observeChats().map { chats -> chats.find { it.id == chatId }?.title ?: "Chat" },
-        repository.observeMessages(chatId),
-        _inputText,
-        _isSending,
-        _error,
-    ) { title, messages, input, isSending, error ->
+    private data class CoreState(
+        val title: String,
+        val messages: List<Message>,
+        val input: String,
+        val isSending: Boolean,
+        val error: String?,
+    )
+
+    val uiState = combine(
+        combine(
+            repository.observeChats().map { chats -> chats.find { it.id == chatId }?.title ?: "Chat" },
+            repository.observeMessages(chatId),
+            _inputText,
+            _isSending,
+            _error,
+        ) { title, messages, input, isSending, error ->
+            CoreState(title, messages, input, isSending, error)
+        },
+        strategyManager.activeType,
+    ) { core, strategyType ->
         var inputToks = 0; var outputToks = 0
-        messages.forEach { m ->
+        core.messages.forEach { m ->
             when (m.role) {
                 Role.USER -> inputToks += m.tokenCount ?: 0
                 Role.ASSISTANT -> outputToks += m.tokenCount ?: 0
             }
         }
-        val tokenStatsDisplay = if (messages.isNotEmpty()) {
+        val tokenStatsDisplay = if (core.messages.isNotEmpty()) {
             val cost = (inputToks * 1.0 + outputToks * 5.0) / 1_000_000
             "Σ ${inputToks + outputToks} tokens · ${String.format(java.util.Locale.US, "\$%.6f", cost)}"
         } else null
         ChatUiState(
             chatId = chatId,
-            chatTitle = title,
-            messages = messages,
-            inputText = input,
-            isSending = isSending,
-            error = error,
+            chatTitle = core.title,
+            messages = core.messages,
+            inputText = core.input,
+            isSending = core.isSending,
+            error = core.error,
             tokenStatsDisplay = tokenStatsDisplay,
+            activeStrategyType = strategyType,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatUiState(chatId = chatId))
 
@@ -91,6 +109,10 @@ class ChatViewModel @Inject constructor(
     }
 
     fun clearError() { _error.value = null }
+
+    fun setStrategy(type: ContextStrategyType) {
+        strategyManager.setStrategy(type)
+    }
 
     private fun sendWithGuard(block: suspend () -> Unit) {
         if (_isSending.value) return
